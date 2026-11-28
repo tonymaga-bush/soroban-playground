@@ -40,6 +40,8 @@ pub enum Error {
     NoRefund = 15,
     /// Arithmetic overflow or underflow occurred.
     ArithmeticOverflow = 16,
+    /// Nonce is not greater than the last successfully executed nonce for this source chain.
+    OutOfOrderNonce = 17,
 }
 
 /// Configuration for one supported source chain.
@@ -122,4 +124,6 @@ pub enum DataKey {
     RelayerStats(Address),
     /// Replay-protection marker for a (source chain, nonce) pair.
     Processed(u64, u64),
+    /// Highest successfully executed nonce per source chain.
+    HighestNonce(u64),
 }

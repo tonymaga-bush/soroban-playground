@@ -35,9 +35,11 @@ use soroban_sdk::{contract, contractimpl, symbol_short, Address, Bytes, BytesN, 
 use crate::storage::{
     get_admin, get_base_refund, get_chain_config, get_congestion_bps, get_gas_price,
     get_max_refund, get_receipt, get_relayer_stats, get_total_claimed, get_total_refunded,
+    get_highest_nonce,
     is_initialized, is_nonce_processed, is_paused, is_relayer, mark_nonce_processed, set_admin,
     set_base_refund, set_chain_config, set_congestion_bps, set_gas_price, set_max_refund,
     set_paused, set_receipt, set_relayer, set_relayer_stats, set_total_claimed, set_total_refunded,
+    set_highest_nonce,
 };
 use crate::types::{ChainConfig, Error, MessageReceipt, RelayerStats};
 
@@ -264,6 +266,14 @@ impl CcipBridge {
         if is_nonce_processed(&env, source_chain_id, nonce) {
             return Err(Error::NonceAlreadyProcessed);
         }
+        // Enforce monotonically increasing sequence numbers per source chain.
+        // Gaps are permitted (message delivery can be partial), but stale/out-of-order
+        // messages cannot be accepted after a newer nonce has finalized.
+        if let Some(highest) = get_highest_nonce(&env, source_chain_id) {
+            if nonce <= highest {
+                return Err(Error::OutOfOrderNonce);
+            }
+        }
 
         let leaf = leaf_hash(&env, source_chain_id, nonce, &message_payload);
         if !verify_merkle(&env, &config.merkle_root, &leaf, &merkle_proof) {
@@ -271,6 +281,7 @@ impl CcipBridge {
         }
 
         mark_nonce_processed(&env, source_chain_id, nonce);
+        set_highest_nonce(&env, source_chain_id, nonce);
 
         let refund = compute_refund(&env, message_payload.len())?;
         let payload_hash = env.crypto().sha256(&message_payload).into();

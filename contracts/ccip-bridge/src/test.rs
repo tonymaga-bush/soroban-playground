@@ -215,6 +215,26 @@ fn test_execute_rejects_invalid_proof() {
 }
 
 #[test]
+fn test_execute_out_of_order_nonce_fails_after_higher_nonce() {
+    let (env, client, admin) = setup();
+    let relayer = Address::generate(&env);
+    client.register_relayer(&admin, &relayer, &true);
+    let payload_high = b"high";
+    let payload_low = b"low";
+    let leaf_high = client.compute_leaf(&CHAIN_ID, &2u64, &b(&env, payload_high));
+    let leaf_low = client.compute_leaf(&CHAIN_ID, &1u64, &b(&env, payload_low));
+    let root = client.hash_pair(&leaf_high, &leaf_low);
+    client.set_chain_config(&admin, &CHAIN_ID, &root, &true);
+    let proof_high = siblings(&env, &[leaf_low]);
+    client.execute_cross_chain_message(&relayer, &CHAIN_ID, &2u64, &b(&env, payload_high), &proof_high);
+    let proof_low = siblings(&env, &[leaf_high]);
+    let result = client.try_execute_cross_chain_message(
+        &relayer, &CHAIN_ID, &1u64, &b(&env, payload_low), &proof_low,
+    );
+    assert!(matches!(result, Err(Ok(Error::OutOfOrderNonce))));
+}
+
+#[test]
 fn test_execute_replay_fails() {
     let (env, client, admin) = setup();
     let payload = b"replay";

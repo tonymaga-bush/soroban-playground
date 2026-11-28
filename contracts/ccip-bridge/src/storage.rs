@@ -174,6 +174,17 @@ pub fn mark_nonce_processed(env: &Env, chain_id: u64, nonce: u64) {
         .set(&DataKey::Processed(chain_id, nonce), &true);
 }
 
+/// Returns the highest successfully executed nonce for a source chain.
+pub fn get_highest_nonce(env: &Env, chain_id: u64) -> Option<u64> {
+    env.storage().persistent().get(&DataKey::HighestNonce(chain_id))
+}
+
+
+/// Records the high-water mark after a message is successfully validated.
+pub fn set_highest_nonce(env: &Env, chain_id: u64, nonce: u64) {
+    env.storage().persistent().set(&DataKey::HighestNonce(chain_id), &nonce);
+}
+
 // ── Message receipts ─────────────────────────────────────────────────────────
 
 pub fn get_receipt(env: &Env, chain_id: u64, nonce: u64) -> Option<MessageReceipt> {
