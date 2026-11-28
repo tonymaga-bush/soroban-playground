@@ -4,7 +4,7 @@ import type { NextConfig } from "next";
  * Static security headers for the Playground (#1540).
  *
  * `Content-Security-Policy` is deliberately *not* set here. It is applied by
- * `src/middleware.ts` instead, because the policy omits `'unsafe-inline'` and
+ * `src/proxy.ts` instead, because the policy omits `'unsafe-inline'` and
  * therefore has to carry a nonce that changes on every response; `headers()` is
  * evaluated once at build time and cannot do that. The two escape hatches it
  * keeps (`'wasm-unsafe-eval'` for the WASM inspector and in-browser rustfmt, and
@@ -12,7 +12,7 @@ import type { NextConfig } from "next";
  * on `buildContentSecurityPolicy`.
  *
  * The headers below need no per-response value, so keeping them here means they
- * still apply to any route middleware might not match.
+ * still apply to any route proxy might not match.
  */
 const STATIC_SECURITY_HEADERS = [
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
